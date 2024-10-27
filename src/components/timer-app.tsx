@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Plus, Play, Pause, Trash2 } from 'lucide-react'
+import { Plus, Play, Pause, Trash2, Edit2 } from 'lucide-react'
 import { Header } from "@/components/header"
 
 interface Timer {
@@ -27,6 +27,10 @@ export function TimerAppComponent() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const buzzerRef = useRef<HTMLAudioElement | null>(null)
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
+  const [editMinutes, setEditMinutes] = useState('')
+  const [editSeconds, setEditSeconds] = useState('')
+  const [editName, setEditName] = useState('')
 
   // New ref to store current time
   const timeRef = useRef({ timers, remainingTotalTime });
@@ -190,6 +194,40 @@ export function TimerAppComponent() {
     window.speechSynthesis.speak(utterance);
   }, [isSpeechEnabled]);
 
+  const startEditing = useCallback((timer: Timer) => {
+    setEditingTimer(timer)
+    setEditMinutes(Math.floor(timer.duration / 60).toString())
+    setEditSeconds((timer.duration % 60).toString())
+    setEditName(timer.name)
+  }, [])
+
+  const saveEdit = useCallback(() => {
+    if (!editingTimer) return
+
+    const minutes = parseInt(editMinutes) || 0
+    const seconds = parseInt(editSeconds) || 0
+    const duration = minutes * 60 + seconds
+
+    if (duration > 0) {
+      setTimers(prevTimers => prevTimers.map(timer => 
+        timer.id === editingTimer.id 
+          ? {
+              ...timer,
+              name: editName,
+              duration: duration,
+              remaining: isRunning && timer.id === timers[currentTimerIndex].id 
+                ? timer.remaining 
+                : duration
+            }
+          : timer
+      ))
+      setEditingTimer(null)
+      setEditMinutes('')
+      setEditSeconds('')
+      setEditName('')
+    }
+  }, [editingTimer, editMinutes, editSeconds, editName, isRunning, timers, currentTimerIndex])
+
   return (
     <div className="p-4 max-w-md mx-auto">
       <Header timers={timers} setTimers={setTimers} />
@@ -214,25 +252,37 @@ export function TimerAppComponent() {
               <div className="text-sm">{formatTime(timer.remaining)}</div>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 ml-2 mr-2">
-              <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${(timer.remaining / timer.duration) * 100}%`}}></div>
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{width: `${(timer.remaining / timer.duration) * 100}%`}}
+              ></div>
             </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4" /></Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the timer.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteTimer(timer.id)}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => startEditing(timer)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the timer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteTimer(timer.id)}>Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         ))}
       </div>
@@ -288,6 +338,38 @@ export function TimerAppComponent() {
           </DialogContent>
         </Dialog>
       </div>
+      <Dialog open={editingTimer !== null} onOpenChange={(open) => !open && setEditingTimer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Timer</DialogTitle>
+            <DialogDescription>
+              Modify the details for your timer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                type="number"
+                placeholder="Minutes"
+                value={editMinutes}
+                onChange={(e) => setEditMinutes(e.target.value)}
+              />
+              <Input
+                type="number"
+                placeholder="Seconds"
+                value={editSeconds}
+                onChange={(e) => setEditSeconds(e.target.value)}
+              />
+            </div>
+            <Input
+              placeholder="Timer Name (optional)"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+            <Button onClick={saveEdit}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* <Button
         onClick={() => speakMessage('Test message')}
       >
