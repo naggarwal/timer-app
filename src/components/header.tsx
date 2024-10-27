@@ -10,6 +10,7 @@ import { Menu } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Trash2 } from 'lucide-react';
 
 interface Timer {
   id: number;
@@ -74,6 +75,17 @@ export function Header({ timers, setTimers }: HeaderProps) {
     });
   };
 
+  const handleDeleteTimerSet = (timerSetName: string) => {
+    const updatedTimerSets = { ...savedTimerSets };
+    delete updatedTimerSets[timerSetName];
+    localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
+    setSavedTimerSets(updatedTimerSets);
+    toast({
+      title: "Success",
+      description: `Timer set "${timerSetName}" deleted successfully!`,
+    });
+  };
+
   return (
     <header className="flex justify-between items-center mb-6">
       <div className="flex items-center">
@@ -84,7 +96,7 @@ export function Header({ timers, setTimers }: HeaderProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Load Timers</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -114,13 +126,24 @@ export function Header({ timers, setTimers }: HeaderProps) {
           </DialogHeader>
           <div className="space-y-2">
             {Object.entries(savedTimerSets).map(([key, timerSet]) => (
-              <Button
-                key={key}
-                onClick={() => handleLoadTimers(timerSet)}
-                className="w-full justify-start"
-              >
-                {timerSet.name}
-              </Button>
+              <div key={key} className="flex items-center justify-between">
+                <Button
+                  onClick={() => handleLoadTimers(timerSet)}
+                  className="w-full justify-start mr-2"
+                >
+                  {timerSet.name}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteTimerSet(key);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
           </div>
         </DialogContent>
