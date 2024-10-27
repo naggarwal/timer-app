@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Plus, Play, Pause, Trash2 } from 'lucide-react'
+import { Header } from "@/components/header"
 
 interface Timer {
   id: number;
@@ -149,6 +150,7 @@ export function TimerAppComponent() {
 
   return (
     <div className="p-4 max-w-md mx-auto">
+      <Header timers={timers} setTimers={setTimers} />
       <h1 className="text-2xl font-bold mb-4">Timer App</h1>
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
