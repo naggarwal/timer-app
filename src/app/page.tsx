@@ -1,4 +1,4 @@
-import Image from "next/image";
+// import Image from "next/image";
 import { TimerAppComponent } from '@/components/timer-app';
 
 export default function Home() {

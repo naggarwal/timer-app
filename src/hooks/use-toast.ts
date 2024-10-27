@@ -18,37 +18,28 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement
 }
 
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
+const ADD_TOAST = "ADD_TOAST"
+const UPDATE_TOAST = "UPDATE_TOAST"
+const DISMISS_TOAST = "DISMISS_TOAST"
+const REMOVE_TOAST = "REMOVE_TOAST"
 
-let count = 0
-
-function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER
-  return count.toString()
-}
-
-type ActionType = typeof actionTypes
+type ActionType = typeof ADD_TOAST | typeof UPDATE_TOAST | typeof DISMISS_TOAST | typeof REMOVE_TOAST
 
 type Action =
   | {
-      type: ActionType["ADD_TOAST"]
+      type: typeof ADD_TOAST
       toast: ToasterToast
     }
   | {
-      type: ActionType["UPDATE_TOAST"]
+      type: typeof UPDATE_TOAST
       toast: Partial<ToasterToast>
     }
   | {
-      type: ActionType["DISMISS_TOAST"]
+      type: typeof DISMISS_TOAST
       toastId?: ToasterToast["id"]
     }
   | {
-      type: ActionType["REMOVE_TOAST"]
+      type: typeof REMOVE_TOAST
       toastId?: ToasterToast["id"]
     }
 
@@ -141,6 +132,9 @@ function dispatch(action: Action) {
 }
 
 type Toast = Omit<ToasterToast, "id">
+
+// Add this function near the top of the file, after imports
+const genId = () => Math.random().toString(36).substring(2, 10);
 
 function toast({ ...props }: Toast) {
   const id = genId()
