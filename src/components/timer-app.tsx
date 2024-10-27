@@ -26,6 +26,7 @@ export function TimerAppComponent() {
   const [remainingTotalTime, setRemainingTotalTime] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const buzzerRef = useRef<HTMLAudioElement | null>(null)
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
 
   // New ref to store current time
   const timeRef = useRef({ timers, remainingTotalTime });
@@ -47,28 +48,33 @@ export function TimerAppComponent() {
   }, [timers])
 
   const updateTimers = useCallback(() => {
-    console.log('updateTimers called');
+    //console.log('updateTimers called');
 
     const { timers, remainingTotalTime } = timeRef.current;
     const updatedTimers = [...timers];
     const currentTimer = updatedTimers[currentTimerIndex];
     
     if (currentTimer && currentTimer.remaining > 0) {
-      console.log(`Current remaining time: ${currentTimer.remaining}`);
+      //console.log(`Current remaining time: ${currentTimer.remaining}`);
       currentTimer.remaining -= 1;
       const newRemainingTotalTime = remainingTotalTime - 1;
       
       setTimers(updatedTimers);
       setRemainingTotalTime(newRemainingTotalTime);
       
-      console.log(`Updating total time from ${remainingTotalTime} to ${newRemainingTotalTime}`);
+      //console.log(`Updating total time from ${remainingTotalTime} to ${newRemainingTotalTime}`);
     } else if (currentTimer && currentTimer.remaining === 0) {
       const playSound = () => {
         if (currentTimerIndex === timers.length - 1 && buzzerRef.current) {
           // Play buzzer sound for the last timer
-          buzzerRef.current.play().catch(error => console.error('Error playing buzzer audio:', error));
+          if (isSpeechEnabled) {
+            speakMessage(`Your final timer is done`);
+          } else {
+            buzzerRef.current.play().catch(error => console.error('Error playing buzzer audio:', error));
+          }
         } else if (audioRef.current) {
           // Play beep sound for other timers
+          console.log(currentTimer.name);
           audioRef.current.play().catch(error => console.error('Error playing audio:', error));
         }
       };
@@ -81,6 +87,7 @@ export function TimerAppComponent() {
       
       if (currentTimerIndex < updatedTimers.length - 1) {
         setCurrentTimerIndex(prevIndex => prevIndex + 1);
+        speakMessage(`Starting ${timers[currentTimerIndex + 1].name} Timer.`);
       } else {
         setIsRunning(false);
       }
@@ -91,13 +98,13 @@ export function TimerAppComponent() {
     let intervalId: NodeJS.Timeout | undefined;
 
     if (isRunning && timers.length > 0) {
-      console.log('Setting up interval');
+      //console.log('Setting up interval');
       intervalId = setInterval(updateTimers, 1000);
     }
 
     return () => {
       if (intervalId !== undefined) {
-        console.log('Clearing interval');
+        //console.log('Clearing interval');
         clearInterval(intervalId);
       }
     };
@@ -145,8 +152,43 @@ export function TimerAppComponent() {
 
   // Add this new useEffect hook
   useEffect(() => {
-    console.log('Timers state updated:', timers);
+    //console.log('Timers state updated:', timers);
   }, [timers]);
+
+  const speakMessage = useCallback((message: string) => {
+    if (!isSpeechEnabled) {
+      console.log('Speech is disabled');
+      return;
+    }
+    
+    // Check if speech synthesis is supported
+    if (!window.speechSynthesis) {
+      console.error('Speech synthesis not supported');
+      return;
+    }
+    
+    console.log('Speaking:', message);
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(message);
+    
+    // Add error handling
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+    };
+    
+    utterance.onstart = () => {
+      console.log('Started speaking');
+    };
+    
+    utterance.onend = () => {
+      console.log('Finished speaking');
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  }, [isSpeechEnabled]);
 
   return (
     <div className="p-4 max-w-md mx-auto">
@@ -194,7 +236,18 @@ export function TimerAppComponent() {
           </div>
         ))}
       </div>
-      <div className="mt-4 flex justify-between">
+      <div className="mt-4 flex justify-between items-center">
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setIsSpeechEnabled(!isSpeechEnabled);
+            setTimeout(() => {
+              
+            }, 5000);
+          }}
+        >
+          {isSpeechEnabled ? 'Voice On' : 'Voice Off'}
+        </Button>
         <Button onClick={toggleTimer}>
           {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
           {isRunning ? 'Pause' : 'Start'}
@@ -235,6 +288,11 @@ export function TimerAppComponent() {
           </DialogContent>
         </Dialog>
       </div>
+      {/* <Button
+        onClick={() => speakMessage('Test message')}
+      >
+        Test Speech
+      </Button> */}
     </div>
   )
 }
