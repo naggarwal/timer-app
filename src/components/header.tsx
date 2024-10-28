@@ -22,9 +22,10 @@ interface Timer {
 interface HeaderProps {
   timers: Timer[];
   setTimers: React.Dispatch<React.SetStateAction<Timer[]>>;
+  onClearTimers: () => void;
 }
 
-export function Header({ timers, setTimers }: HeaderProps) {
+export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
   const { toast } = useToast();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
@@ -98,6 +99,7 @@ export function Header({ timers, setTimers }: HeaderProps) {
           <DropdownMenuContent>
             <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onClearTimers}>Clear All Timers</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <h1 className="text-2xl font-bold">Timer App</h1>
