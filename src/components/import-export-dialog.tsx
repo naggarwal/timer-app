@@ -13,6 +13,16 @@ interface Timer {
   remaining: number;
 }
 
+interface ImportedTimer {
+  name: string;
+  duration: number;
+}
+
+interface ImportedData {
+  name: string;
+  timers: ImportedTimer[];
+}
+
 interface ImportExportDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,16 +81,16 @@ export function ImportExportDialog({ isOpen, onClose, timers, setTimers }: Impor
     }
   };
 
-  const processImportData = (importedData: any) => {
+  const processImportData = (importedData: ImportedData) => {
     if (!importedData?.name || !Array.isArray(importedData.timers)) {
       throw new Error('Invalid YAML format');
     }
 
-    const newTimers = importedData.timers.map((item: any) => ({
+    const newTimers = importedData.timers.map((item: ImportedTimer) => ({
       id: Date.now() + Math.random(),
       name: item.name || '',
-      duration: parseInt(item.duration) || 0,
-      remaining: parseInt(item.duration) || 0,
+      duration: parseInt(String(item.duration)) || 0,
+      remaining: parseInt(String(item.duration)) || 0,
     }));
 
     const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
