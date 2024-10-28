@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2 } from 'lucide-react';
+import { ImportExportDialog } from "@/components/import-export-dialog";
 
 interface Timer {
   id: number;
@@ -31,6 +32,7 @@ export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [timerSetName, setTimerSetName] = useState('');
   const [savedTimerSets, setSavedTimerSets] = useState<Record<string, { name: string; timers: Timer[] }>>({});
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   useEffect(() => {
     const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
@@ -99,6 +101,7 @@ export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
           <DropdownMenuContent>
             <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsImportExportOpen(true)}>Import/Export</DropdownMenuItem>
             <DropdownMenuItem onSelect={onClearTimers}>Clear All Timers</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -150,6 +153,13 @@ export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImportExportDialog
+        isOpen={isImportExportOpen}
+        onClose={() => setIsImportExportOpen(false)}
+        timers={timers}
+        setTimers={setTimers}
+      />
     </header>
   );
 }
