@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Plus, Play, Pause, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Play, Pause, Trash2, Edit2, MoveUp, MoveDown } from 'lucide-react'
 import { Header } from "@/components/header"
 
 interface Timer {
@@ -228,6 +228,37 @@ export function TimerAppComponent() {
     }
   }, [editingTimer, editMinutes, editSeconds, editName, isRunning, timers, currentTimerIndex])
 
+  const moveTimer = useCallback((timerId: number, direction: 'up' | 'down') => {
+    setTimers(prevTimers => {
+      const currentIndex = prevTimers.findIndex(timer => timer.id === timerId);
+      if (currentIndex === -1) return prevTimers;
+      
+      const newIndex = direction === 'up' 
+        ? Math.max(0, currentIndex - 1)
+        : Math.min(prevTimers.length - 1, currentIndex + 1);
+      
+      if (currentIndex === newIndex) return prevTimers;
+      
+      const newTimers = [...prevTimers];
+      const [movedTimer] = newTimers.splice(currentIndex, 1);
+      newTimers.splice(newIndex, 0, movedTimer);
+      
+      // Adjust currentTimerIndex if needed
+      if (isRunning) {
+        if (currentTimerIndex === currentIndex) {
+          setCurrentTimerIndex(newIndex);
+        } else if (
+          currentTimerIndex === newIndex && direction === 'down' ||
+          currentTimerIndex === newIndex - 1 && direction === 'up'
+        ) {
+          setCurrentTimerIndex(currentIndex);
+        }
+      }
+      
+      return newTimers;
+    });
+  }, [currentTimerIndex, isRunning]);
+
   return (
     <div className="p-4 max-w-md mx-auto">
       <Header timers={timers} setTimers={setTimers} />
@@ -339,7 +370,7 @@ export function TimerAppComponent() {
         </Dialog>
       </div>
       <Dialog open={editingTimer !== null} onOpenChange={(open) => !open && setEditingTimer(null)}>
-        <DialogContent>
+        <DialogContent className="bg-background/95 backdrop-blur-sm border">
           <DialogHeader>
             <DialogTitle>Edit Timer</DialogTitle>
             <DialogDescription>
@@ -366,7 +397,27 @@ export function TimerAppComponent() {
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
             />
-            <Button onClick={saveEdit}>Save Changes</Button>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => editingTimer && moveTimer(editingTimer.id, 'up')}
+                  disabled={!editingTimer || timers.indexOf(editingTimer) === 0}
+                >
+                  <MoveUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => editingTimer && moveTimer(editingTimer.id, 'down')}
+                  disabled={!editingTimer || timers.indexOf(editingTimer) === timers.length - 1}
+                >
+                  <MoveDown className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button onClick={saveEdit}>Save Changes</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
