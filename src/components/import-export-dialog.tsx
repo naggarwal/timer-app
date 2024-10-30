@@ -28,9 +28,10 @@ interface ImportExportDialogProps {
   onClose: () => void;
   timers: Timer[];
   setTimers: (timers: Timer[]) => void;
+  onImportSuccess: (name: string) => void;
 }
 
-export function ImportExportDialog({ isOpen, onClose, timers, setTimers }: ImportExportDialogProps) {
+export function ImportExportDialog({ isOpen, onClose, timers, setTimers, onImportSuccess }: ImportExportDialogProps) {
   const { toast } = useToast();
   const [yamlContent, setYamlContent] = useState('');
   const [exportName, setExportName] = useState('');
@@ -110,14 +111,26 @@ export function ImportExportDialog({ isOpen, onClose, timers, setTimers }: Impor
     });
   };
 
-  const handleImport = () => {
+  const handleImport = async (file: File) => {
     try {
-      const importedData = parse(yamlContent);
-      processImportData(importedData);
+      const text = await file.text();
+      const parsed = parse(text) as { name: string; timers: Timer[] };
+      
+      if (!parsed || !Array.isArray(parsed.timers)) {
+        throw new Error('Invalid YAML format');
+      }
+
+      setTimers(parsed.timers);
+      onImportSuccess(parsed.name || file.name.replace('.yaml', ''));
+      onClose();
+      toast({
+        title: "Success",
+        description: "Timers imported successfully!",
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to import timers. Please check the YAML format.",
+        description: "Failed to import timers. Please check the file format.",
         variant: "destructive",
       });
     }
@@ -142,6 +155,19 @@ export function ImportExportDialog({ isOpen, onClose, timers, setTimers }: Impor
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportFromText = () => {
+    try {
+      const parsed = parse(yamlContent) as { name: string; timers: Timer[] };
+      processImportData(parsed);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to import timers. Please check the YAML format.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -194,7 +220,7 @@ timers:
                 onChange={(e) => setYamlContent(e.target.value)}
               />
               <Button 
-                onClick={handleImport} 
+                onClick={handleImportFromText} 
                 disabled={!yamlContent}
                 className="mt-2"
               >

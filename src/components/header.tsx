@@ -43,6 +43,7 @@ export function Header({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [timerSetName, setTimerSetName] = useState('');
+  const [activeTimerSetName, setActiveTimerSetName] = useState('');
   const [savedTimerSets, setSavedTimerSets] = useState<Record<string, { name: string; timers: Timer[] }>>({});
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
@@ -72,6 +73,7 @@ export function Header({
     const updatedTimerSets = { ...savedTimerSets, [timerSetName]: timerSet };
     localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
     setSavedTimerSets(updatedTimerSets);
+    setActiveTimerSetName(timerSetName);
 
     setIsSaveDialogOpen(false);
     setTimerSetName('');
@@ -83,6 +85,7 @@ export function Header({
 
   const handleLoadTimers = (selectedTimerSet: { name: string; timers: Timer[] }) => {
     setTimers(selectedTimerSet.timers);
+    setActiveTimerSetName(selectedTimerSet.name);
     setIsLoadDialogOpen(false);
     toast({
       title: "Success",
@@ -116,7 +119,10 @@ export function Header({
                 <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setIsImportExportOpen(true)}>Import/Export</DropdownMenuItem>
-                <DropdownMenuItem onSelect={onClearTimers}>Clear All Timers</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => {
+                  setActiveTimerSetName('');
+                  onClearTimers();
+                }}>Clear All Timers</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <h1 className="text-2xl font-bold">Timer App</h1>
@@ -125,7 +131,14 @@ export function Header({
 
         <div className="mt-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="font-semibold">Total Time: {formatTime(remainingTotalTime)} / {formatTime(totalTime)}</span>
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">
+                {activeTimerSetName || "Untitled"}
+              </span>
+              <span className="font-semibold">
+                Total Time: {formatTime(remainingTotalTime)} / {formatTime(totalTime)}
+              </span>
+            </div>
             <Button onClick={onResetTimers} variant="outline">Reset All</Button>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
@@ -187,6 +200,12 @@ export function Header({
           onClose={() => setIsImportExportOpen(false)}
           timers={timers}
           setTimers={setTimers}
+          onImportSuccess={() => {
+            toast({
+              title: "Success",
+              description: "Timers imported successfully!",
+            });
+          }}
         />
       </div>
     </div>
