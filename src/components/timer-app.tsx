@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Plus, Play, Pause, Trash2, Edit2, MoveUp, MoveDown } from 'lucide-react'
 import { Header } from "@/components/header"
+import { TimerFooter } from "@/components/timer/timer-footer"
+import { TimerList } from "@/components/timer/timer-list"
 
 interface Timer {
   id: number;
@@ -274,92 +276,44 @@ export function TimerAppComponent() {
   ];
 
   return (
-    <div className="p-4 max-w-md mx-auto">
+    <div className="min-h-screen">
       <Header 
         timers={timers} 
         setTimers={setTimers} 
-        onClearTimers={() => setShowConfirmation(true)} 
+        onClearTimers={() => setShowConfirmation(true)}
+        remainingTotalTime={remainingTotalTime}
+        totalTime={totalTime}
+        onResetTimers={resetTimers}
+        formatTime={formatTime}
       />
-      <h1 className="text-2xl font-bold mb-4">Timer App</h1>
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-semibold">Total Time: {formatTime(remainingTotalTime)} / {formatTime(totalTime)}</span>
-          <Button onClick={resetTimers} variant="outline">Reset All</Button>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full" 
-            style={{width: `${totalTime > 0 ? (remainingTotalTime / totalTime) * 100 : 0}%`}}
-          ></div>
-        </div>
-      </div>
-      <div className="space-y-4">
-        {timers.map((timer, index) => (
-          <div key={timer.id} className="flex items-center justify-between p-2 border rounded">
-            <div className="flex-1">
-              <div className="font-semibold">{timer.name || `Timer ${index + 1}`}</div>
-              <div className="text-sm">{formatTime(timer.remaining)}</div>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 ml-2 mr-2">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full" 
-                style={{width: `${(timer.remaining / timer.duration) * 100}%`}}
-              ></div>
-            </div>
-            <div className="flex">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => startEditing(timer)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the timer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteTimer(timer.id)}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex justify-between items-center">
-        <Button 
-          variant="outline" 
-          onClick={() => {
-            setIsSpeechEnabled(!isSpeechEnabled);
-            setTimeout(() => {
-              
-            }, 5000);
-          }}
-        >
-          {isSpeechEnabled ? 'Voice On' : 'Voice Off'}
-        </Button>
-        <Button onClick={toggleTimer}>
-          {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-          {isRunning ? 'Pause' : 'Start'}
-        </Button>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Add Timer</Button>
-          </DialogTrigger>
-          <DialogContent>
+      <div className="p-4 max-w-md mx-auto mt-[120px] mb-[88px]">
+        <TimerList 
+          timers={timers}
+          formatTime={formatTime}
+          onStartEditing={startEditing}
+          onDeleteTimer={deleteTimer}
+        />
+        
+        <TimerFooter 
+          isRunning={isRunning}
+          isSpeechEnabled={isSpeechEnabled}
+          newTimerMinutes={newTimerMinutes}
+          newTimerSeconds={newTimerSeconds}
+          newTimerName={newTimerName}
+          onToggleTimer={toggleTimer}
+          onToggleSpeech={() => setIsSpeechEnabled(!isSpeechEnabled)}
+          onAddTimer={addTimer}
+          setNewTimerMinutes={setNewTimerMinutes}
+          setNewTimerSeconds={setNewTimerSeconds}
+          setNewTimerName={setNewTimerName}
+        />
+        
+        <Dialog open={editingTimer !== null} onOpenChange={(open) => !open && setEditingTimer(null)}>
+          <DialogContent className="bg-background/95 backdrop-blur-sm border">
             <DialogHeader>
-              <DialogTitle>Add New Timer</DialogTitle>
+              <DialogTitle>Edit Timer</DialogTitle>
               <DialogDescription>
-                Enter the details for your new timer.
+                Modify the details for your timer.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -367,105 +321,73 @@ export function TimerAppComponent() {
                 <Input
                   type="number"
                   placeholder="Minutes"
-                  value={newTimerMinutes}
-                  onChange={(e) => setNewTimerMinutes(e.target.value)}
+                  value={editMinutes}
+                  onChange={(e) => setEditMinutes(e.target.value)}
                 />
                 <Input
                   type="number"
                   placeholder="Seconds"
-                  value={newTimerSeconds}
-                  onChange={(e) => setNewTimerSeconds(e.target.value)}
+                  value={editSeconds}
+                  onChange={(e) => setEditSeconds(e.target.value)}
                 />
               </div>
               <Input
                 placeholder="Timer Name (optional)"
-                value={newTimerName}
-                onChange={(e) => setNewTimerName(e.target.value)}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
               />
-              <Button onClick={addTimer}>Add</Button>
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => editingTimer && moveTimer(editingTimer.id, 'up')}
+                    disabled={!editingTimer || timers.indexOf(editingTimer) === 0}
+                  >
+                    <MoveUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => editingTimer && moveTimer(editingTimer.id, 'down')}
+                    disabled={!editingTimer || timers.indexOf(editingTimer) === timers.length - 1}
+                  >
+                    <MoveDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button onClick={saveEdit}>Save Changes</Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-      <Dialog open={editingTimer !== null} onOpenChange={(open) => !open && setEditingTimer(null)}>
-        <DialogContent className="bg-background/95 backdrop-blur-sm border">
-          <DialogHeader>
-            <DialogTitle>Edit Timer</DialogTitle>
-            <DialogDescription>
-              Modify the details for your timer.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="number"
-                placeholder="Minutes"
-                value={editMinutes}
-                onChange={(e) => setEditMinutes(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Seconds"
-                value={editSeconds}
-                onChange={(e) => setEditSeconds(e.target.value)}
-              />
-            </div>
-            <Input
-              placeholder="Timer Name (optional)"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
-            <div className="flex justify-between items-center">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => editingTimer && moveTimer(editingTimer.id, 'up')}
-                  disabled={!editingTimer || timers.indexOf(editingTimer) === 0}
+        {/* <Button
+          onClick={() => speakMessage('Test message')}
+        >
+          Test Speech
+        </Button> */}
+        {showConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Are you sure?</h3>
+              <p className="mb-4">This will delete all timers. This action cannot be undone.</p>
+              <div className="flex justify-end gap-4">
+                <button
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  onClick={() => setShowConfirmation(false)}
                 >
-                  <MoveUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => editingTimer && moveTimer(editingTimer.id, 'down')}
-                  disabled={!editingTimer || timers.indexOf(editingTimer) === timers.length - 1}
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={handleClearTimers}
                 >
-                  <MoveDown className="h-4 w-4" />
-                </Button>
+                  Yes, Clear All
+                </button>
               </div>
-              <Button onClick={saveEdit}>Save Changes</Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-      {/* <Button
-        onClick={() => speakMessage('Test message')}
-      >
-        Test Speech
-      </Button> */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h3 className="text-lg font-semibold mb-4">Are you sure?</h3>
-            <p className="mb-4">This will delete all timers. This action cannot be undone.</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                onClick={() => setShowConfirmation(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onClick={handleClearTimers}
-              >
-                Yes, Clear All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

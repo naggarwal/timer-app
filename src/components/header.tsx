@@ -24,9 +24,21 @@ interface HeaderProps {
   timers: Timer[];
   setTimers: React.Dispatch<React.SetStateAction<Timer[]>>;
   onClearTimers: () => void;
+  remainingTotalTime: number;
+  totalTime: number;
+  onResetTimers: () => void;
+  formatTime: (seconds: number) => string;
 }
 
-export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
+export function Header({ 
+  timers, 
+  setTimers, 
+  onClearTimers,
+  remainingTotalTime,
+  totalTime,
+  onResetTimers,
+  formatTime
+}: HeaderProps) {
   const { toast } = useToast();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
@@ -90,76 +102,93 @@ export function Header({ timers, setTimers, onClearTimers }: HeaderProps) {
   };
 
   return (
-    <header className="flex justify-between items-center mb-6">
-      <div className="flex items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="mr-4">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIsImportExportOpen(true)}>Import/Export</DropdownMenuItem>
-            <DropdownMenuItem onSelect={onClearTimers}>Clear All Timers</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <h1 className="text-2xl font-bold">Timer App</h1>
-      </div>
-
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save Timer Set</DialogTitle>
-          </DialogHeader>
-          <Input
-            placeholder="Enter a name for your timer set"
-            value={timerSetName}
-            onChange={(e) => setTimerSetName(e.target.value)}
-          />
-          <DialogFooter>
-            <Button onClick={handleSaveTimers}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Load Timer Set</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            {Object.entries(savedTimerSets).map(([key, timerSet]) => (
-              <div key={key} className="flex items-center justify-between">
-                <Button
-                  onClick={() => handleLoadTimers(timerSet)}
-                  className="w-full justify-start mr-2"
-                >
-                  {timerSet.name}
+    <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
+      <div className="max-w-md mx-auto p-4">
+        <header className="flex justify-between items-center">
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="mr-4">
+                  <Menu className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteTimerSet(key);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}>Manage Timers</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsSaveDialogOpen(true)}>Save Timers</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsImportExportOpen(true)}>Import/Export</DropdownMenuItem>
+                <DropdownMenuItem onSelect={onClearTimers}>Clear All Timers</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <h1 className="text-2xl font-bold">Timer App</h1>
           </div>
-        </DialogContent>
-      </Dialog>
+        </header>
 
-      <ImportExportDialog
-        isOpen={isImportExportOpen}
-        onClose={() => setIsImportExportOpen(false)}
-        timers={timers}
-        setTimers={setTimers}
-      />
-    </header>
+        <div className="mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-semibold">Total Time: {formatTime(remainingTotalTime)} / {formatTime(totalTime)}</span>
+            <Button onClick={onResetTimers} variant="outline">Reset All</Button>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full" 
+              style={{width: `${totalTime > 0 ? (remainingTotalTime / totalTime) * 100 : 0}%`}}
+            ></div>
+          </div>
+        </div>
+
+        <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Save Timer Set</DialogTitle>
+            </DialogHeader>
+            <Input
+              placeholder="Enter a name for your timer set"
+              value={timerSetName}
+              onChange={(e) => setTimerSetName(e.target.value)}
+            />
+            <DialogFooter>
+              <Button onClick={handleSaveTimers}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Load Timer Set</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {Object.entries(savedTimerSets).map(([key, timerSet]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <Button
+                    onClick={() => handleLoadTimers(timerSet)}
+                    className="w-full justify-start mr-2"
+                  >
+                    {timerSet.name}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTimerSet(key);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <ImportExportDialog
+          isOpen={isImportExportOpen}
+          onClose={() => setIsImportExportOpen(false)}
+          timers={timers}
+          setTimers={setTimers}
+        />
+      </div>
+    </div>
   );
 }
