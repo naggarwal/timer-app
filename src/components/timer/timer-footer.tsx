@@ -5,12 +5,10 @@ import { Plus, Play, Pause } from 'lucide-react'
 
 interface TimerFooterProps {
   isRunning: boolean
-  isSpeechEnabled: boolean
   newTimerMinutes: string
   newTimerSeconds: string
   newTimerName: string
   onToggleTimer: () => void
-  onToggleSpeech: () => void
   onAddTimer: () => void
   setNewTimerMinutes: (value: string) => void
   setNewTimerSeconds: (value: string) => void
@@ -19,12 +17,10 @@ interface TimerFooterProps {
 
 export function TimerFooter({
   isRunning,
-  isSpeechEnabled,
   newTimerMinutes,
   newTimerSeconds,
   newTimerName,
   onToggleTimer,
-  onToggleSpeech,
   onAddTimer,
   setNewTimerMinutes,
   setNewTimerSeconds,
@@ -33,13 +29,6 @@ export function TimerFooter({
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-t">
       <div className="max-w-md mx-auto p-4 flex justify-between items-center">
-        <Button 
-          variant="outline" 
-          onClick={onToggleSpeech}
-        >
-          {isSpeechEnabled ? 'Voice On' : 'Voice Off'}
-        </Button>
-
         <Button onClick={onToggleTimer}>
           {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
           {isRunning ? 'Pause' : 'Start'}
@@ -62,19 +51,19 @@ export function TimerFooter({
                   type="number"
                   placeholder="Minutes"
                   value={newTimerMinutes}
-                  onChange={(e) => setNewTimerMinutes(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimerMinutes(e.target.value)}
                 />
                 <Input
                   type="number"
                   placeholder="Seconds"
                   value={newTimerSeconds}
-                  onChange={(e) => setNewTimerSeconds(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimerSeconds(e.target.value)}
                 />
               </div>
               <Input
                 placeholder="Timer Name (optional)"
                 value={newTimerName}
-                onChange={(e) => setNewTimerName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimerName(e.target.value)}
               />
               <Button onClick={onAddTimer}>Add</Button>
             </div>
@@ -83,4 +72,4 @@ export function TimerFooter({
       </div>
     </div>
   )
-} 
+}

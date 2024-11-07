@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2 } from 'lucide-react';
 import { ImportExportDialog } from "@/components/import-export-dialog";
+import { SettingsDialog } from "@/components/settings-dialog";
 
 interface Timer {
   id: number;
@@ -28,6 +29,8 @@ interface HeaderProps {
   totalTime: number;
   onResetTimers: () => void;
   formatTime: (seconds: number) => string;
+  isSpeechEnabled: boolean;
+  onToggleSpeech: () => void;
 }
 
 export function Header({ 
@@ -37,7 +40,9 @@ export function Header({
   remainingTotalTime,
   totalTime,
   onResetTimers,
-  formatTime
+  formatTime,
+  isSpeechEnabled,
+  onToggleSpeech
 }: HeaderProps) {
   const { toast } = useToast();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -127,6 +132,10 @@ export function Header({
             </DropdownMenu>
             <h1 className="text-2xl font-bold">Timer App</h1>
           </div>
+          <SettingsDialog 
+            isSpeechEnabled={isSpeechEnabled}
+            onToggleSpeech={onToggleSpeech}
+          />
         </header>
 
         <div className="mt-4">
@@ -141,9 +150,9 @@ export function Header({
             </div>
             <Button onClick={onResetTimers} variant="outline">Reset All</Button>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+          <div className="w-full bg-secondary rounded-full h-2.5">
             <div 
-              className="bg-blue-600 h-2.5 rounded-full" 
+              className="bg-primary h-2.5 rounded-full" 
               style={{width: `${totalTime > 0 ? (remainingTotalTime / totalTime) * 100 : 0}%`}}
             ></div>
           </div>
