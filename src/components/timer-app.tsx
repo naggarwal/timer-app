@@ -28,7 +28,7 @@ export function TimerAppComponent() {
   const [remainingTotalTime, setRemainingTotalTime] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const buzzerRef = useRef<HTMLAudioElement | null>(null)
-  const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
   const [editMinutes, setEditMinutes] = useState('')
   const [editSeconds, setEditSeconds] = useState('')
@@ -285,6 +285,8 @@ export function TimerAppComponent() {
         totalTime={totalTime}
         onResetTimers={resetTimers}
         formatTime={formatTime}
+        isSpeechEnabled={isSpeechEnabled}
+        onToggleSpeech={() => setIsSpeechEnabled(!isSpeechEnabled)}
       />
       <div className="p-4 max-w-md mx-auto mt-[120px] mb-[88px]">
         <TimerList 
@@ -296,12 +298,10 @@ export function TimerAppComponent() {
         
         <TimerFooter 
           isRunning={isRunning}
-          isSpeechEnabled={isSpeechEnabled}
           newTimerMinutes={newTimerMinutes}
           newTimerSeconds={newTimerSeconds}
           newTimerName={newTimerName}
           onToggleTimer={toggleTimer}
-          onToggleSpeech={() => setIsSpeechEnabled(!isSpeechEnabled)}
           onAddTimer={addTimer}
           setNewTimerMinutes={setNewTimerMinutes}
           setNewTimerSeconds={setNewTimerSeconds}
