@@ -5,6 +5,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
+
 //console.log('API Key:', process.env.OPENAI_API_KEY); // For debugging
 
 const SYSTEM_PROMPT = `Create a timer set based on the user's request. Return only valid JSON matching this schema:
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
     const { prompt } = await request.json();
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: MODEL,
       temperature: 0,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
