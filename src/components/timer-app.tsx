@@ -9,8 +9,6 @@ import { Plus, Play, Pause, Trash2, Edit2, MoveUp, MoveDown } from 'lucide-react
 import { Header } from "@/components/header"
 import { TimerFooter } from "@/components/timer/timer-footer"
 import { TimerList } from "@/components/timer/timer-list"
-import { AITimerDialog } from "@/components/timer/ai-timer-dialog"
-import { Wand2 } from "lucide-react"
 
 interface Timer {
   id: number;
@@ -36,7 +34,6 @@ export function TimerAppComponent() {
   const [editSeconds, setEditSeconds] = useState('')
   const [editName, setEditName] = useState('')
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [aiDialogOpen, setAiDialogOpen] = useState(false)
 
   // New ref to store current time
   const timeRef = useRef({ timers, remainingTotalTime });
@@ -278,10 +275,6 @@ export function TimerAppComponent() {
     },
   ];
 
-  const handleAcceptAITimers = useCallback((newTimers: Timer[]) => {
-    setTimers(prevTimers => [...prevTimers, ...newTimers])
-  }, [])
-
   return (
     <div className="min-h-screen">
       <Header 
@@ -296,15 +289,6 @@ export function TimerAppComponent() {
         onToggleSpeech={() => setIsSpeechEnabled(!isSpeechEnabled)}
       />
       <div className="p-4 max-w-md mx-auto mt-[120px] mb-[88px]">
-        <Button
-          variant="outline"
-          className="w-full mb-4"
-          onClick={() => setAiDialogOpen(true)}
-        >
-          <Wand2 className="mr-2 h-4 w-4" />
-          Generate with AI
-        </Button>
-
         <TimerList 
           timers={timers}
           formatTime={formatTime}
@@ -322,12 +306,6 @@ export function TimerAppComponent() {
           setNewTimerMinutes={setNewTimerMinutes}
           setNewTimerSeconds={setNewTimerSeconds}
           setNewTimerName={setNewTimerName}
-        />
-
-        <AITimerDialog
-          open={aiDialogOpen}
-          onOpenChange={setAiDialogOpen}
-          onAcceptTimers={handleAcceptAITimers}
         />
 
         <Dialog open={editingTimer !== null} onOpenChange={(open) => !open && setEditingTimer(null)}>

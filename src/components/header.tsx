@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2 } from 'lucide-react';
 import { ImportExportDialog } from "@/components/import-export-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { AITimerDialog } from "@/components/timer/ai-timer-dialog";
+import { Wand2 } from "lucide-react";
 
 interface Timer {
   id: number;
@@ -51,6 +53,7 @@ export function Header({
   const [activeTimerSetName, setActiveTimerSetName] = useState('');
   const [savedTimerSets, setSavedTimerSets] = useState<Record<string, { name: string; timers: Timer[] }>>({});
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
 
   useEffect(() => {
     const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
@@ -109,6 +112,10 @@ export function Header({
     });
   };
 
+  const handleAcceptAITimers = (newTimers: Timer[]) => {
+    setTimers(prevTimers => [...prevTimers, ...newTimers]);
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
       <div className="max-w-md mx-auto p-4">
@@ -128,6 +135,10 @@ export function Header({
                   setActiveTimerSetName('');
                   onClearTimers();
                 }}>Clear All Timers</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsAIDialogOpen(true)}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Generate with AI
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <h1 className="text-2xl font-bold">Timer App</h1>
@@ -215,6 +226,12 @@ export function Header({
               description: "Timers imported successfully!",
             });
           }}
+        />
+
+        <AITimerDialog
+          open={isAIDialogOpen}
+          onOpenChange={setIsAIDialogOpen}
+          onAcceptTimers={handleAcceptAITimers}
         />
       </div>
     </div>
