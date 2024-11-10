@@ -55,63 +55,51 @@ export function TimerAppComponent() {
   }, [timers])
 
   const updateTimers = useCallback(() => {
-    //console.log('updateTimers called');
-
     const { timers, remainingTotalTime } = timeRef.current;
     const updatedTimers = [...timers];
     const currentTimer = updatedTimers[currentTimerIndex];
     
     if (currentTimer && currentTimer.remaining > 0) {
-      //console.log(`Current remaining time: ${currentTimer.remaining}`);
+      if (currentTimer.remaining <= 5 && audioRef.current) {
+        audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+      }
+      
       currentTimer.remaining -= 1;
       const newRemainingTotalTime = remainingTotalTime - 1;
       
       setTimers(updatedTimers);
       setRemainingTotalTime(newRemainingTotalTime);
-      
-      //console.log(`Updating total time from ${remainingTotalTime} to ${newRemainingTotalTime}`);
     } else if (currentTimer && currentTimer.remaining === 0) {
-      const playSound = () => {
-        if (currentTimerIndex === timers.length - 1 && buzzerRef.current) {
-          // Play buzzer sound for the last timer
-          if (isSpeechEnabled) {
+      if (buzzerRef.current) {
+        if (isSpeechEnabled) {
+          if (currentTimerIndex === timers.length - 1) {
             speakMessage(`Your final timer is done`);
-          } else {
-            buzzerRef.current.play().catch(error => console.error('Error playing buzzer audio:', error));
           }
-        } else if (audioRef.current) {
-          // Play beep sound for other timers
-          console.log(currentTimer.name);
-          audioRef.current.play().catch(error => console.error('Error playing audio:', error));
+        } else {
+          buzzerRef.current.play().catch(error => console.error('Error playing buzzer audio:', error));
         }
-      };
-      
-      playSound();
-      if (currentTimerIndex < timers.length - 1) {
-        setTimeout(playSound, 1000);
-        setTimeout(playSound, 2000);
       }
       
-      if (currentTimerIndex < updatedTimers.length - 1) {
+      if (currentTimerIndex < timers.length - 1) {
         setCurrentTimerIndex(prevIndex => prevIndex + 1);
-        speakMessage(`Starting ${timers[currentTimerIndex + 1].name} Timer.`);
+        if (isSpeechEnabled) {
+          speakMessage(`Starting ${timers[currentTimerIndex + 1].name} Timer.`);
+        }
       } else {
         setIsRunning(false);
       }
     }
-  }, [currentTimerIndex]);
+  }, [currentTimerIndex, isSpeechEnabled]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
     if (isRunning && timers.length > 0) {
-      //console.log('Setting up interval');
       intervalId = setInterval(updateTimers, 1000);
     }
 
     return () => {
       if (intervalId !== undefined) {
-        //console.log('Clearing interval');
         clearInterval(intervalId);
       }
     };
@@ -157,7 +145,6 @@ export function TimerAppComponent() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }, [])
 
-  // Add this new useEffect hook
   useEffect(() => {
     //console.log('Timers state updated:', timers);
   }, [timers]);
@@ -168,7 +155,6 @@ export function TimerAppComponent() {
       return;
     }
     
-    // Check if speech synthesis is supported
     if (!window.speechSynthesis) {
       console.error('Speech synthesis not supported');
       return;
@@ -176,12 +162,10 @@ export function TimerAppComponent() {
     
     console.log('Speaking:', message);
     
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(message);
     
-    // Add error handling
     utterance.onerror = (event) => {
       console.error('Speech synthesis error:', event);
     };
@@ -246,7 +230,6 @@ export function TimerAppComponent() {
       const [movedTimer] = newTimers.splice(currentIndex, 1);
       newTimers.splice(newIndex, 0, movedTimer);
       
-      // Adjust currentTimerIndex if needed
       if (isRunning) {
         if (currentTimerIndex === currentIndex) {
           setCurrentTimerIndex(newIndex);
