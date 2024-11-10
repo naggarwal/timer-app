@@ -28,7 +28,7 @@ export function TimerAppComponent() {
   const [remainingTotalTime, setRemainingTotalTime] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const buzzerRef = useRef<HTMLAudioElement | null>(null)
-  const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
   const [editMinutes, setEditMinutes] = useState('')
   const [editSeconds, setEditSeconds] = useState('')
