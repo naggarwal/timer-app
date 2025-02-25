@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Wand2 } from "lucide-react"
+import { Loader2, Wand2, RefreshCw } from "lucide-react"
 
 interface Timer {
   id: number;
@@ -24,17 +24,30 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
   const [isLoading, setIsLoading] = useState(false)
   const [generatedTimers, setGeneratedTimers] = useState<Timer[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [conversation, setConversation] = useState<{role: string, content: string}[]>([])
+  const [followUpPrompt, setFollowUpPrompt] = useState('')
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (userPrompt: string, isFollowUp = false) => {
     setIsLoading(true)
     setError(null)
+    
+    // Update conversation history
+    const newConversation = isFollowUp 
+      ? [...conversation, { role: 'user', content: userPrompt }]
+      : [{ role: 'user', content: userPrompt }];
+    
+    setConversation(newConversation);
+    
     try {
       const response = await fetch('/api/generate-timer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt: userPrompt,
+          conversation: isFollowUp ? newConversation : undefined
+        }),
       })
       
       if (!response.ok) {
@@ -54,13 +67,28 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
         remaining: timer.duration,
       }))
       
+      // Add assistant response to conversation
+      setConversation([
+        ...newConversation,
+        { role: 'assistant', content: `Generated ${newTimers.length} timers` }
+      ]);
+      
       setGeneratedTimers(newTimers)
+      setFollowUpPrompt('')
     } catch (error) {
       console.error('Error generating timers:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate timers')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleInitialSubmit = () => {
+    handleSubmit(prompt);
+  }
+
+  const handleFollowUpSubmit = () => {
+    handleSubmit(followUpPrompt, true);
   }
 
   const handleAccept = () => {
@@ -72,13 +100,21 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
 
   const handleReset = () => {
     setPrompt('')
+    setFollowUpPrompt('')
     setGeneratedTimers(null)
+    setConversation([])
     onOpenChange(false)
+  }
+
+  const handleRestartConversation = () => {
+    setGeneratedTimers(null)
+    setFollowUpPrompt('')
+    setConversation([])
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Generate Timer with AI</DialogTitle>
           <DialogDescription>
@@ -98,7 +134,7 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
               <p className="text-sm text-red-500">{error}</p>
             )}
             <Button 
-              onClick={handleSubmit} 
+              onClick={handleInitialSubmit} 
               disabled={!prompt.trim() || isLoading}
             >
               {isLoading ? (
@@ -116,7 +152,7 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
           </div>
         ) : (
           <div className="grid gap-4 py-4">
-            <div className="rounded-md bg-muted p-4">
+            <div className="rounded-md bg-muted p-4 max-h-[200px] overflow-y-auto">
               <h4 className="mb-2 font-medium">Generated Timer Set:</h4>
               {generatedTimers.map((timer, index) => (
                 <div key={timer.id} className="flex justify-between items-center mb-2">
@@ -125,6 +161,41 @@ export function AITimerDialog({ open, onOpenChange, onAcceptTimers }: AITimerDia
                 </div>
               ))}
             </div>
+            
+            <div className="border-t pt-4">
+              <h4 className="mb-2 font-medium">Not quite right? Refine your timers:</h4>
+              <Textarea
+                placeholder="Make the workout more intense..." 
+                value={followUpPrompt}
+                onChange={(e) => setFollowUpPrompt(e.target.value)}
+                className="min-h-[80px] mb-2"
+              />
+              <div className="flex gap-2 mb-4">
+                <Button 
+                  onClick={handleFollowUpSubmit}
+                  disabled={!followUpPrompt.trim() || isLoading}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Refining...
+                    </>
+                  ) : (
+                    "Refine Timers"
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleRestartConversation}
+                  variant="outline"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Restart
+                </Button>
+              </div>
+            </div>
+            
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleReset}>
                 Cancel
