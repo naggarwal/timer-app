@@ -19,12 +19,19 @@ import { AITimerDialog } from "@/components/timer/ai-timer-dialog";
 import { Wand2 } from "lucide-react";
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
+import { createTimeset, deleteTimeset, getTimesets } from '@/lib/supabase/timesets';
 
 interface Timer {
   id: number;
   name: string;
   duration: number;
   remaining: number;
+}
+
+interface TimerSet {
+  id: string;
+  name: string;
+  timers: Timer[];
 }
 
 interface HeaderProps {
@@ -56,16 +63,51 @@ export function Header({
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [timerSetName, setTimerSetName] = useState('');
   const [activeTimerSetName, setActiveTimerSetName] = useState('');
-  const [savedTimerSets, setSavedTimerSets] = useState<Record<string, { name: string; timers: Timer[] }>>({});
+  const [savedTimerSets, setSavedTimerSets] = useState<TimerSet[]>([]);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
-    setSavedTimerSets(savedSets);
-  }, []);
+    if (user) {
+      loadTimerSets();
+    } else {
+      // Fallback to local storage if not logged in
+      const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
+      const formattedSets = Object.entries(savedSets).map(([key, value]: [string, any]) => ({
+        id: key,
+        name: value.name,
+        timers: value.timers
+      }));
+      setSavedTimerSets(formattedSets);
+    }
+  }, [user]);
 
-  const handleSaveTimers = () => {
+  const loadTimerSets = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const timesets = await getTimesets();
+      const formattedSets = timesets.map(set => ({
+        id: set.id,
+        name: set.name,
+        timers: set.times as unknown as Timer[]
+      }));
+      setSavedTimerSets(formattedSets);
+    } catch (error) {
+      console.error('Error loading timer sets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your saved timer sets.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveTimers = async () => {
     if (timerSetName.trim() === '') {
       toast({
         title: "Error",
@@ -83,20 +125,79 @@ export function Header({
       }))
     };
 
-    const updatedTimerSets = { ...savedTimerSets, [timerSetName]: timerSet };
-    localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
-    setSavedTimerSets(updatedTimerSets);
-    setActiveTimerSetName(timerSetName);
+    setIsLoading(true);
+    try {
+      if (user) {
+        try {
+          // Save to Supabase
+          const savedSet = await createTimeset({
+            name: timerSetName,
+            times: timerSet.timers
+          });
+          
+          setSavedTimerSets(prev => [
+            ...prev, 
+            { 
+              id: savedSet.id, 
+              name: savedSet.name, 
+              timers: savedSet.times as unknown as Timer[] 
+            }
+          ]);
+          setActiveTimerSetName(timerSetName);
+        } catch (error) {
+          console.error('Error saving to Supabase:', error);
+          // If Supabase save fails, fallback to localStorage
+          toast({
+            title: "Warning",
+            description: "Could not save to cloud. Saving locally instead.",
+            variant: "destructive",
+          });
+          
+          // Fallback to localStorage
+          const updatedTimerSets = { ...JSON.parse(localStorage.getItem('savedTimerSets') || '{}'), [timerSetName]: timerSet };
+          localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
+          
+          const formattedSets = Object.entries(updatedTimerSets).map(([key, value]: [string, any]) => ({
+            id: key,
+            name: value.name,
+            timers: value.timers
+          }));
+          setSavedTimerSets(formattedSets);
+          setActiveTimerSetName(timerSetName);
+        }
+      } else {
+        // Fallback to localStorage if not logged in
+        const updatedTimerSets = { ...JSON.parse(localStorage.getItem('savedTimerSets') || '{}'), [timerSetName]: timerSet };
+        localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
+        
+        const formattedSets = Object.entries(updatedTimerSets).map(([key, value]: [string, any]) => ({
+          id: key,
+          name: value.name,
+          timers: value.timers
+        }));
+        setSavedTimerSets(formattedSets);
+        setActiveTimerSetName(timerSetName);
+      }
 
-    setIsSaveDialogOpen(false);
-    setTimerSetName('');
-    toast({
-      title: "Success",
-      description: "Timer set saved successfully!",
-    });
+      setIsSaveDialogOpen(false);
+      setTimerSetName('');
+      toast({
+        title: "Success",
+        description: "Timer set saved successfully!",
+      });
+    } catch (error) {
+      console.error('Error saving timer set:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your timer set.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleLoadTimers = (selectedTimerSet: { name: string; timers: Timer[] }) => {
+  const handleLoadTimers = (selectedTimerSet: TimerSet) => {
     setTimers(selectedTimerSet.timers);
     setActiveTimerSetName(selectedTimerSet.name);
     setIsLoadDialogOpen(false);
@@ -106,15 +207,41 @@ export function Header({
     });
   };
 
-  const handleDeleteTimerSet = (timerSetName: string) => {
-    const updatedTimerSets = { ...savedTimerSets };
-    delete updatedTimerSets[timerSetName];
-    localStorage.setItem('savedTimerSets', JSON.stringify(updatedTimerSets));
-    setSavedTimerSets(updatedTimerSets);
-    toast({
-      title: "Success",
-      description: `Timer set "${timerSetName}" deleted successfully!`,
-    });
+  const handleDeleteTimerSet = async (timerSetId: string) => {
+    setIsLoading(true);
+    try {
+      if (user) {
+        // Delete from Supabase
+        await deleteTimeset(timerSetId);
+        setSavedTimerSets(prev => prev.filter(set => set.id !== timerSetId));
+      } else {
+        // Fallback to localStorage if not logged in
+        const savedSets = JSON.parse(localStorage.getItem('savedTimerSets') || '{}');
+        delete savedSets[timerSetId];
+        localStorage.setItem('savedTimerSets', JSON.stringify(savedSets));
+        
+        const formattedSets = Object.entries(savedSets).map(([key, value]: [string, any]) => ({
+          id: key,
+          name: value.name,
+          timers: value.timers
+        }));
+        setSavedTimerSets(formattedSets);
+      }
+
+      toast({
+        title: "Success",
+        description: "Timer set deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting timer set:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the timer set.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAcceptAITimers = (newTimers: Timer[]) => {
@@ -228,7 +355,9 @@ export function Header({
               onChange={(e) => setTimerSetName(e.target.value)}
             />
             <DialogFooter>
-              <Button onClick={handleSaveTimers}>Save</Button>
+              <Button onClick={handleSaveTimers} disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -238,28 +367,35 @@ export function Header({
             <DialogHeader>
               <DialogTitle>Load Timer Set</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              {Object.entries(savedTimerSets).map(([key, timerSet]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Button
-                    onClick={() => handleLoadTimers(timerSet)}
-                    className="w-full justify-start mr-2"
-                  >
-                    {timerSet.name}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTimerSet(key);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="py-4 text-center">Loading your timer sets...</div>
+            ) : savedTimerSets.length === 0 ? (
+              <div className="py-4 text-center">No saved timer sets found.</div>
+            ) : (
+              <div className="space-y-2">
+                {savedTimerSets.map((timerSet) => (
+                  <div key={timerSet.id} className="flex items-center justify-between">
+                    <Button
+                      onClick={() => handleLoadTimers(timerSet)}
+                      className="w-full justify-start mr-2"
+                    >
+                      {timerSet.name}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTimerSet(timerSet.id);
+                      }}
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
