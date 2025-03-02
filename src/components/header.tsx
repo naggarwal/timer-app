@@ -5,8 +5,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Menu } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,8 @@ import { ImportExportDialog } from "@/components/import-export-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { AITimerDialog } from "@/components/timer/ai-timer-dialog";
 import { Wand2 } from "lucide-react";
+import { useAuth } from '@/lib/auth-context';
+import Link from 'next/link';
 
 interface Timer {
   id: number;
@@ -47,6 +51,7 @@ export function Header({
   onToggleSpeech
 }: HeaderProps) {
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [timerSetName, setTimerSetName] = useState('');
@@ -116,6 +121,30 @@ export function Header({
     setTimers(prevTimers => [...prevTimers, ...newTimers]);
   };
 
+  const handleSignOut = async () => {
+    try {
+      // First call the API route to clear server-side session
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Sign out failed on server');
+      }
+      
+      // Then call the client-side signOut to clear local state
+      await signOut();
+      
+      // Force a hard refresh to ensure all state is cleared
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
       <div className="max-w-md mx-auto p-4">
@@ -139,6 +168,25 @@ export function Header({
                   <Wand2 className="mr-2 h-4 w-4" />
                   Generate with AI
                 </DropdownMenuItem>
+                
+                {user && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Account</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/change-password">Change Password</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleSignOut}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <h1 className="text-2xl font-bold">Timer App</h1>
